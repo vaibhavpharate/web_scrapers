@@ -172,6 +172,7 @@ if r.status_code == 200:
                                         st.markdown(dates_df.head(10).to_html(render_links=True,justify='center'),unsafe_allow_html=True)
 
                                         date_list = list(dates_df['dates'])
+                                        ## This is for Sidebar Content
 
                                         with st.sidebar:
                                             st.selectbox(label='Select Date',options=date_list)
