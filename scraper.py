@@ -1,3 +1,5 @@
+import sys
+
 import requests
 from bs4 import BeautifulSoup
 import numpy as np
@@ -6,6 +8,15 @@ from datetime import datetime
 import re
 import psycopg2
 from sqlalchemy import create_engine, text
+
+user_dt = None
+try:
+    user_dt = sys.argv[1]
+except Exception as e:
+    print("No Date Specified")
+
+
+# print(user_impt)
 
 conn_dict = {'NAME': 'postgres',
              'USER': 'admin123',
@@ -71,7 +82,7 @@ files_df = get_database_storage(db_connection)
 list_files = list(files_df['file_name']) ## List of all files in database
 list_dates_db = list(files_df['date_for_hour'].dt.date)
 files_df['for_date'] = files_df['date_for_hour'].dt.date
-print(list_dates_db)
+print(files_df['for_date'])
 
 if len(files_df) > 1:
 
@@ -79,7 +90,7 @@ if len(files_df) > 1:
     files_df = files_df.sort_values('date_for_hour', ascending=False)
     list_files = list(files_df['file_name'])
     date_for_hour_list = list(files_df['date_for_hour'].unique())
-    files_df = files_df.loc[:, :].head(20)
+    # files_df = files_df.loc[:, :].head(20)
 
 try:
     r = requests.get(url_data_access)
@@ -250,15 +261,11 @@ def insert_query(conn,files_data:dict):
         print(f"Inserted a new File {files_data['file_name']}")
 
     except Exception as e:
-
         print(e)
 def get_date_list(dt):
-    # dt_str = dt.replace("-","")
-    # print(dt)
-    link = list(dates_df.loc[dates_df['dates']==dt,'links'])[0]
-    # print(dates_df['dates'])
-    print(link)
 
+    link = list(dates_df.loc[dates_df['dates']==dt,'links'])[0]
+    print(link)
     try:
         list_link_resp = requests.get(link)
     except Exception as e:
@@ -310,27 +317,23 @@ def get_date_list(dt):
 latest_links_list = get_date_list(latest_date)
 
 def get_list_from_db(dt):
-    if dt.date() not in list_dates_db:
+    dt = dt.date()
+    if dt not in list_dates_db:
         print("There are no files details in the database for the given date")
-        print("Checking on Website")
-        print(dt,list_dates_db)
-        # get_date_list(dt)
+
     else:
         req_files = files_df.loc[files_df['for_date'] == dt,:]
-        print(req_files)
-        # files_df
+
+        print("Found the date")
+        print(files_df)
 
 
-
-user_dt = input("Enter the date for searching the links in the form YYYY-MM-DD or say exit ")
-if user_dt.strip().lower() == "exit":
-    exit(654)
-else:
-    user_dt = datetime.strptime(user_dt,'%Y-%m-%d')
+if user_dt == None:
+    user_dt = input("Enter the date for searching the links in the form YYYY-MM-DD or say exit ")
+    if user_dt.strip().lower() == "exit":
+        exit(654)
+    else:
+        user_dt = datetime.strptime(user_dt,'%Y-%m-%d')
     get_list_from_db(user_dt)
-    pass
 
-# get_date_list(user_dt)
-
-## Creating the final list
 
