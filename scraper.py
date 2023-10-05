@@ -329,11 +329,12 @@ def get_list_from_db(dt):
 
 
 if user_dt == None:
-    user_dt = input("Enter the date for searching the links in the form YYYY-MM-DD or say exit ")
-    if user_dt.strip().lower() == "exit":
-        exit(654)
-    else:
-        user_dt = datetime.strptime(user_dt,'%Y-%m-%d')
-    get_list_from_db(user_dt)
+    pass
+   # user_dt = input("Enter the date for searching the links in the form YYYY-MM-DD or say exit ")
+   # if user_dt.strip().lower() == "exit":
+    #    exit(654)
+    # else:
+      #  user_dt = datetime.strptime(user_dt,'%Y-%m-%d')
+    # get_list_from_db(user_dt)
 
 
