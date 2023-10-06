@@ -11,10 +11,17 @@ from sqlalchemy import create_engine, text
 
 
 user_dt = None
+add_all_data = None
 try:
     user_dt = sys.argv[1]
 except Exception as e:
     print("No Date Specified")
+
+try:
+    add_all_data = sys.argv[2]
+except Exception as e:
+    print("Will be adding single file at a time")
+
 
 
 url = "https://rda.ucar.edu/datasets/ds084.1"
@@ -77,12 +84,12 @@ db_connection = get_connection(host = conn_dict['HOST'],
 
 # Get the files data stored in database
 def get_database_storage(conn):
-    query = "SELECT * FROM files_data"
+    query = "SELECT * FROM files_gfs"
     df = pd.read_sql_query(query,conn)
     return df
 
 files_df = get_database_storage(db_connection)
-
+# print(files_df.info())
 
 # Get the Files data from the database
 if len(files_df) > 1:
@@ -157,6 +164,7 @@ def get_time_gap(data):
     return time_gap
 
 
+## Insert Query
 def insert_query(conn,files_data:dict):
     query = (f"""INSERT INTO files_data(dates, file_links, file_name,downloadable,size, time_delta, date_for_hour) VALUES (
                 '{files_data['dates']}','{files_data['file_links']}','{files_data['file_name']}','{files_data['downloadable']}','{files_data['size']}'
@@ -170,7 +178,10 @@ def insert_query(conn,files_data:dict):
     except Exception as e:
         print(e)
 
+
 def get_date_list(dt):
+    # print(dates_df)
+    # dates_df.to_csv('dates_df.csv')
     link = list(dates_df.loc[dates_df['dates']==dt,'links'])[0]
     print(link)
     try:
@@ -203,49 +214,66 @@ def get_date_list(dt):
     files_df['date_for_hour'] = files_df['file_name'].apply(get_date_from_file)
     files_df['dates'] = dt
     files_df['log_ts'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    files_df.sort_values(['date_for_hour','time_delta'],ascending=[False,False],inplace=True)
     # return files_df
     latest_links_list = files_df.copy()
     # print(f"{files_df.loc[['file_name', 'file_links'], :]}")
     print(f"{files_df}")
-    # print(latest_links_list)
-    # list_files_new = list(latest_links_list['file_name'])
     counter = 0
-    # for x in list_files_new:
-    #     if x not in list_files:
-    #         counter += 1
-    #         dictionary = latest_links_list.loc[latest_links_list['file_name'] == x,
-    #                      :].fillna('None').to_dict('records')
-    #         if len(dictionary) > 0:
-    #             dictionary = dictionary[0]
-    #             insert_query(conn=insrt_conn, files_data=dictionary)
-
-    # if counter == 0:
-    #     print("There are no more file changes")
     return(files_df)
 
 
-latest_links_list = get_date_list(latest_date)
-# print(latest_links_list)
-try:
-    latest_links_list.to_sql(name='files_gfs',con=db_connection,if_exists='append')
-except Exception as e:
-    print(e)
+# Get the list of dates 
 
 def get_list_from_db(dt):
-    dt = dt.date()
-    if dt not in list_dates_db:
+    dt2 = dt.date()
+    if dt2 not in list_dates_db:
         print("There are no files details in the database for the given date")
-
+        return get_date_list(dt=dt)
     else:
-        req_files = files_df.loc[files_df['for_date'] == dt,:]
-
+        req_files = files_df.loc[files_df['dates'] == dt,:]
         print("Found the date")
-        print(files_df)
-    
-if user_dt == None:
-    user_dt = input("Enter the date for searching the links in the form YYYY-MM-DD or say exit ")
-    if user_dt.strip().lower() == "exit":
-        exit(654)
+        # in_database = True
+        return req_files
+
+
+
+
+# if user enters a date then use only that date to search else go for the latest date
+if user_dt != None:
+    user_dt = datetime.strptime(user_dt,'%Y-%m-%d')
+    print(user_dt)
+    latest_links_list = get_list_from_db(user_dt)
+else:
+    latest_links_list = get_date_list(latest_date)
+
+if ~False:
+    if add_all_data == None:
+        latest_file = latest_links_list.head(1)
+        print("Latest File is")
+        print(latest_file)
+        try:
+            latest_file.to_sql(name='files_gfs',con=db_connection,if_exists='append')
+            print("Appended One to database")
+        except Exception as e:
+            print("File already Exists")
+        # print(e)
     else:
-        user_dt = datetime.strptime(user_dt,'%Y-%m-%d')
-    get_list_from_db(user_dt)
+        try:
+            latest_links_list.to_sql(name='files_gfs',con=db_connection,if_exists='append')
+            # print(latest_links_list)
+            print("Appended All to database")
+            # print(latest_links_list)
+        except Exception as e:
+            print("File alteady Exists")
+latest_file = latest_links_list.head(1)
+print(latest_file)
+
+
+# if user_dt == None:
+#     user_dt = input("Enter the date for searching the links in the form YYYY-MM-DD or say exit ")
+#     if user_dt.strip().lower() == "exit":
+#         exit(654)
+#     else:
+#         user_dt = datetime.strptime(user_dt,'%Y-%m-%d')
+#     get_list_from_db(user_dt)
