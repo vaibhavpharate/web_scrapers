@@ -20,7 +20,8 @@ except Exception as e:
 try:
     add_all_data = sys.argv[2]
 except Exception as e:
-    print("Will be adding single file at a time")
+    # print("Will be adding single file at a time")
+        print(e)
 
 
 
@@ -192,7 +193,7 @@ def get_date_list(dt):
     if list_link_resp.status_code == 200:
         list_link_resp = BeautifulSoup(list_link_resp.content, 'html.parser')
         list_link_resp = list_link_resp.find('tbody')
-    dates = []
+    # dates = []
     links = []
     file_name = []
     sizes = []
@@ -217,12 +218,6 @@ def get_date_list(dt):
     print(f"{files_df}")
     return(files_df)
 
-
-
-
-
-
-
 class GetListofFiles:
     def __init__(self,dt) -> None:
         self.dt = dt
@@ -244,47 +239,31 @@ class GetListofFiles:
 
 if user_dt !=None:
     user_dt = datetime.strptime(user_dt,'%Y-%m-%d')
-    get_list = GetListofFiles(user_dt)
+    # get_list = GetListofFiles(user_dt)
+    get_list = get_date_list(user_dt)
 else:
-    get_list = GetListofFiles(user_dt)
+    # get_list = GetListofFiles(user_dt)
+    get_list = get_date_list(latest_date)
+print(get_list)
 
+list_new = list(get_list['file_name'])
+# list_files
+in_db_list = []
 
-print(get_list.in_db)
-# # if user enters a date then use only that date to search else go for the latest date
-# if user_dt != None:
-#     user_dt = datetime.strptime(user_dt,'%Y-%m-%d')
-#     print(user_dt)
-#     latest_links_list = get_list_from_db(user_dt)
-# else:
-#     latest_links_list = get_date_list(latest_date)
-
-# if ~False:
-#     if add_all_data == None:
-#         latest_file = latest_links_list.head(1)
-#         print("Latest File is")
-#         # print(latest_file)
-#         try:
-#             latest_file.to_sql(name='files_gfs',con=db_connection,if_exists='append')
-#             print("Appended One to database")
-#         except Exception as e:
-#             print("File already Exists")
-#         # print(e)
-#     else:
-#         try:
-#             latest_links_list.to_sql(name='files_gfs',con=db_connection,if_exists='append')
-#             # print(latest_links_list)
-#             print("Appended All to database")
-#             # print(latest_links_list)
-#         except Exception as e:
-#             print("File alteady Exists")
-# latest_file = latest_links_list.head(1)
-# print(latest_file)
-
-
-# if user_dt == None:
-#     user_dt = input("Enter the date for searching the links in the form YYYY-MM-DD or say exit ")
-#     if user_dt.strip().lower() == "exit":
-#         exit(654)
-#     else:
-#         user_dt = datetime.strptime(user_dt,'%Y-%m-%d')
-#     get_list_from_db(user_dt)
+for x in list_new:
+    if x not in list_files:
+        in_db_list.append(True)
+    else:
+        in_db_list.append(False)
+print(f"The Total Number of new Files found are")
+get_list = get_list.loc[in_db_list,:]
+try:
+    get_list.to_sql(name='files_gfs',con=db_connection,if_exists='append')
+except Exception as e:
+    print("Error at the SQL insert Query")
+    print(e)
+if len(get_list) == 0:
+    print("There are no new files to add")
+else:
+    print(f"Number of new files added are {len(get_list)}")
+    print(get_list.loc[:,['file_name','log_ts']])
