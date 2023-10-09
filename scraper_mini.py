@@ -179,6 +179,7 @@ def insert_query(conn,files_data:dict):
     except Exception as e:
         print(e)
 
+crash_counter = 0
 
 # Get files for a date from website
 def get_date_list(dt):
@@ -187,9 +188,14 @@ def get_date_list(dt):
         list_link_resp = requests.get(link)
     except Exception as e:
         print(f"There is an issue at the link {link}")
+        print("Retrying")
         print(e)
-        # get_date_list(dt)
-        exit(354)
+        crash_counter += 1
+        if crash_counter < 5:
+            get_date_list(dt)
+        else:
+            print("The Site is not responding")
+            exit(404)
     if list_link_resp.status_code == 200:
         list_link_resp = BeautifulSoup(list_link_resp.content, 'html.parser')
         list_link_resp = list_link_resp.find('tbody')
@@ -267,3 +273,45 @@ if len(get_list) == 0:
 else:
     print(f"Number of new files added are {len(get_list)}")
     print(get_list.loc[:,['file_name','log_ts']])
+
+
+
+
+# # if user enters a date then use only that date to search else go for the latest date
+# if user_dt != None:
+#     user_dt = datetime.strptime(user_dt,'%Y-%m-%d')
+#     print(user_dt)
+#     latest_links_list = get_list_from_db(user_dt)
+# else:
+#     latest_links_list = get_date_list(latest_date)
+
+# if ~False:
+#     if add_all_data == None:
+#         latest_file = latest_links_list.head(1)
+#         print("Latest File is")
+#         # print(latest_file)
+#         try:
+#             latest_file.to_sql(name='files_gfs',con=db_connection,if_exists='append')
+#             print("Appended One to database")
+#         except Exception as e:
+#             print("File already Exists")
+#         # print(e)
+#     else:
+#         try:
+#             latest_links_list.to_sql(name='files_gfs',con=db_connection,if_exists='append')
+#             # print(latest_links_list)
+#             print("Appended All to database")
+#             # print(latest_links_list)
+#         except Exception as e:
+#             print("File alteady Exists")
+# latest_file = latest_links_list.head(1)
+# print(latest_file)
+
+
+# if user_dt == None:
+#     user_dt = input("Enter the date for searching the links in the form YYYY-MM-DD or say exit ")
+#     if user_dt.strip().lower() == "exit":
+#         exit(654)
+#     else:
+#         user_dt = datetime.strptime(user_dt,'%Y-%m-%d')
+#     get_list_from_db(user_dt)
